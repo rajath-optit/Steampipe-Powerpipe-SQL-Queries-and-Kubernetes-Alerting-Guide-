@@ -1,0 +1,5 @@
+steampipe
+powerpipe
+awscli
+kubectl
+helm
