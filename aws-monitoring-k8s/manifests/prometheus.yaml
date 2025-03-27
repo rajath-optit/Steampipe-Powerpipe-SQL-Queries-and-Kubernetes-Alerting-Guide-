@@ -1,0 +1,13 @@
+# Prometheus Config for AWS CloudWatch Exporter
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prometheus-cloudwatch-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: cloudwatch-exporter
+  endpoints:
+    - port: metrics
+      interval: 30s
