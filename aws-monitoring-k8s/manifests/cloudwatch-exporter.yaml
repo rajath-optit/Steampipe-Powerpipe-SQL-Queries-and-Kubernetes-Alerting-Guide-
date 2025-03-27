@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudwatch-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudwatch-exporter
+  template:
+    metadata:
+      labels:
+        app: cloudwatch-exporter
+    spec:
+      containers:
+        - name: cloudwatch-exporter
+          image: quay.io/prometheus/cloudwatch-exporter:latest
+          ports:
+            - containerPort: 9106
+          env:
+            - name: AWS_REGION
+              value: "us-east-1"
