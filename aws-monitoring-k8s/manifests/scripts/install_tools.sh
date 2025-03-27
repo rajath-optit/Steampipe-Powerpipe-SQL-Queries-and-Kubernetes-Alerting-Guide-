@@ -1,3 +1,4 @@
+# Install Steampipe, Powerpipe & AWS Plugin
 #!/bin/bash
 
 echo "Installing Steampipe..."
