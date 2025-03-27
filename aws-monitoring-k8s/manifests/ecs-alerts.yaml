@@ -1,0 +1,11 @@
+groups:
+  - name: aws-ecs-alerts
+    rules:
+      - alert: ECSServiceDown
+        expr: aws_ecs_service_running_count == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ECS Service Down Alert"
+          description: "The ECS service {{ $labels.service_name }} has zero running tasks."
