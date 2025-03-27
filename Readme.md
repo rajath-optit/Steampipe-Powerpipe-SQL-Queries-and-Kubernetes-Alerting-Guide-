@@ -113,7 +113,24 @@ Controls provide an easy-to-use mechanism for auditing your environment with Pow
  
 -----------------------------new control or mods creation step ends here-------------------- 
  
-.Steampipe & Powerpipe SQL Queries and Kubernetes Alerting Guide 
+## .Steampipe & Powerpipe SQL Queries and Kubernetes Alerting Guide 
+
+```
+aws-monitoring-k8s/
+│── manifests/                   # Kubernetes YAML files
+│   ├── prometheus.yaml          # Prometheus configuration
+│   ├── alertmanager.yaml        # Alertmanager configuration
+│   ├── cloudwatch-exporter.yaml # AWS CloudWatch Exporter deployment
+│   ├── ecs-alerts.yaml          # ECS service alerts in Prometheus
+│── scripts/                      # Deployment scripts
+│   ├── install_tools.sh         # Install Steampipe, Powerpipe, and plugins
+│   ├── deploy_k8s.sh            # Deploy all Kubernetes components
+│── queries/                      # Steampipe SQL queries
+│   ├── ecs_service.sql          # Query ECS service details
+│── requirements.txt              # Required dependencies
+│── README.md                     # Setup & Usage instructions
+│── .gitignore                     # Ignore unnecessary files
+```
 
 📌 Introduction 
 
