@@ -441,14 +441,385 @@ Wait 1-2 minutes and check for alerts.
 
  ✅ Sending notifications via Slack, Email, or AWS SNS 
 
-Would you like additional custom queries, dashboards, or integrations for your AWS services? 🚀 
+--------------------------------------------------------------------
+🚀 Automating AWS Infrastructure Deployment with Terraform
+This section explains how to use Terraform to automate AWS infrastructure, including:
+✅ VPC, Subnets, and Security Groups
+✅ EKS Cluster for Kubernetes
+✅ IAM Roles for Permissions
 
- 
- 
- 
- 
- 
- 
+1️⃣ Install Terraform
+Download and install Terraform:
+
+sh
+Copy
+Edit
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt-get update && sudo apt-get install terraform
+Verify installation:
+
+sh
+Copy
+Edit
+terraform -v
+2️⃣ Create Terraform Project Structure
+plaintext
+Copy
+Edit
+aws-eks-terraform/
+│── modules/
+│   ├── vpc/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   ├── eks/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│── main.tf
+│── variables.tf
+│── outputs.tf
+│── terraform.tfvars
+│── README.md
+3️⃣ Define AWS VPC & Subnet (vpc/main.tf)
+hcl
+Copy
+Edit
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
+  enable_dns_hostnames = true
+  tags = { Name = "eks-vpc" }
+}
+
+resource "aws_subnet" "public" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+  availability_zone = "us-east-1a"
+  tags = { Name = "eks-public-subnet" }
+}
+4️⃣ Deploy AWS EKS Cluster (eks/main.tf)
+hcl
+Copy
+Edit
+resource "aws_eks_cluster" "eks" {
+  name     = "my-eks-cluster"
+  role_arn = aws_iam_role.eks_role.arn
+
+  vpc_config {
+    subnet_ids = [aws_subnet.public.id]
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.eks]
+}
+5️⃣ Create IAM Role for EKS (eks/iam.tf)
+hcl
+Copy
+Edit
+resource "aws_iam_role" "eks_role" {
+  name = "eks-cluster-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "eks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks" {
+  role       = aws_iam_role.eks_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+6️⃣ Terraform Configuration (main.tf)
+hcl
+Copy
+Edit
+module "vpc" {
+  source = "./modules/vpc"
+}
+
+module "eks" {
+  source = "./modules/eks"
+  vpc_id = module.vpc.vpc_id
+}
+7️⃣ Deploy Infrastructure with Terraform
+Initialize Terraform:
+
+sh
+Copy
+Edit
+terraform init
+Plan changes:
+
+sh
+Copy
+Edit
+terraform plan
+Apply the changes:
+
+sh
+Copy
+Edit
+terraform apply -auto-approve
+8️⃣ Verify Deployment
+✅ Check EKS Cluster in AWS Console
+✅ Run kubectl to test cluster access
+
+sh
+Copy
+Edit
+aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
+kubectl get nodes
+📌 Automating Terraform with GitHub Actions
+Add Terraform automation with GitHub Actions to deploy infrastructure automatically.
+
+Create Workflow: .github/workflows/terraform.yaml
+yaml
+Copy
+Edit
+name: Terraform Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.3.0
+
+    - name: Initialize Terraform
+      run: terraform init
+
+    - name: Plan Terraform
+      run: terraform plan
+
+    - name: Apply Terraform
+      run: terraform apply -auto-approve
+🔹 GitHub Secrets Required:
+
+AWS_ACCESS_KEY_ID
+
+AWS_SECRET_ACCESS_KEY
+
+✅ Conclusion
+🚀 Now you have AWS infrastructure automated using Terraform!
+✅ AWS EKS cluster deployed via Terraform
+✅ GitHub Actions automates deployment
+✅ Steampipe queries for AWS monitoring
+
+----------------------------------------------------------
+## **🚀 Adding Auto Scaling and RDS to Terraform Automation**  
+
+Now, let's extend the Terraform setup to include:  
+✅ **Auto Scaling Group (ASG) for EC2 instances**  
+✅ **RDS Database for application storage**  
+
+---
+
+## **📌 Updating Terraform Project Structure**  
+
+Your updated Terraform structure will look like this:  
+
+```plaintext
+aws-eks-terraform/
+│── modules/
+│   ├── vpc/
+│   ├── eks/
+│   ├── asg/   <-- New module for Auto Scaling Group
+│   ├── rds/   <-- New module for RDS
+│── main.tf
+│── variables.tf
+│── outputs.tf
+│── terraform.tfvars
+│── README.md
+```
+
+---
+
+## **1️⃣ Define Auto Scaling Group (asg/main.tf)**  
+
+This module creates an **EC2 Auto Scaling Group** with a launch template.  
+
+```hcl
+resource "aws_launch_template" "ecs_template" {
+  name          = "ecs-launch-template"
+  image_id      = "ami-0abcdef1234567890"  # Replace with latest Amazon Linux AMI
+  instance_type = "t3.micro"
+  key_name      = "my-key-pair"  # Replace with your SSH key
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.asg_sg.id]
+  }
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    yum update -y
+    yum install -y docker
+    service docker start
+    usermod -aG docker ec2-user
+    EOF
+  )
+}
+
+resource "aws_autoscaling_group" "ecs_asg" {
+  desired_capacity     = 2
+  max_size            = 3
+  min_size            = 1
+  vpc_zone_identifier = [aws_subnet.public.id]
+
+  launch_template {
+    id      = aws_launch_template.ecs_template.id
+    version = "$Latest"
+  }
+}
+```
+
+---
+
+## **2️⃣ Define RDS Database (rds/main.tf)**  
+
+This module provisions an **Amazon RDS PostgreSQL instance**.  
+
+```hcl
+resource "aws_db_instance" "rds" {
+  allocated_storage    = 20
+  engine              = "postgres"
+  instance_class      = "db.t3.micro"
+  username           = "admin"
+  password           = "password123"  # Use Secrets Manager instead of hardcoding
+  publicly_accessible = false
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
+
+  tags = {
+    Name = "my-rds-instance"
+  }
+}
+```
+
+---
+
+## **3️⃣ Update Main Terraform File (main.tf)**  
+
+Now, include **ASG and RDS modules** in the main configuration.  
+
+```hcl
+module "vpc" {
+  source = "./modules/vpc"
+}
+
+module "eks" {
+  source = "./modules/eks"
+  vpc_id = module.vpc.vpc_id
+}
+
+module "asg" {
+  source = "./modules/asg"
+  vpc_id = module.vpc.vpc_id
+}
+
+module "rds" {
+  source = "./modules/rds"
+  vpc_id = module.vpc.vpc_id
+}
+```
+
+---
+
+## **4️⃣ Deploy with Terraform**  
+
+Initialize Terraform:  
+```sh
+terraform init
+```
+
+Plan changes:  
+```sh
+terraform plan
+```
+
+Apply changes:  
+```sh
+terraform apply -auto-approve
+```
+
+---
+
+## **5️⃣ Verify AWS Resources**  
+
+✅ **Check Auto Scaling Group:**  
+```sh
+aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[*].{Name:AutoScalingGroupName,Desired:DesiredCapacity}"
+```
+
+✅ **Check RDS Database:**  
+```sh
+aws rds describe-db-instances --query "DBInstances[*].{Name:DBInstanceIdentifier,Status:DBInstanceStatus}"
+```
+
+---
+
+## **🚀 Automating Deployment with GitHub Actions**  
+
+Update `.github/workflows/terraform.yaml`:  
+
+```yaml
+name: Terraform Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.3.0
+
+    - name: Initialize Terraform
+      run: terraform init
+
+    - name: Plan Terraform
+      run: terraform plan
+
+    - name: Apply Terraform
+      run: terraform apply -auto-approve
+```
+
+🔹 **GitHub Secrets Required:**  
+- `AWS_ACCESS_KEY_ID`  
+- `AWS_SECRET_ACCESS_KEY`  
+
+---
+
+## **✅ Conclusion**  
+
+🎯 **Now your AWS infrastructure includes:**  
+✅ **EKS Cluster for Kubernetes**  
+✅ **Auto Scaling Group (ASG) for ECS/EC2 scaling**  
+✅ **RDS PostgreSQL database**  
+✅ **Automated deployments using Terraform and GitHub Actions**  
+
+
  
  
  
